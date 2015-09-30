@@ -7,14 +7,6 @@
         "location": 
         {
             "type": "string",
-            "allowedValues": 
-            [
-                "West US",
-                "East US",
-                "West Europe",
-                "East Asia",
-                "Southeast Asia"
-            ],
             "metadata": 
             {
                 "description": "The region to deploy the resources into"
@@ -39,13 +31,48 @@
             }
         },
 
-        "newStorageAccount": 
+        "storageAccountName": 
         {
             "type": "string",
             "metadata": 
             {
                 "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
             }
+        },
+
+        "storageAccountNewOrExisting" : 
+        {
+            "type": "string",
+            "defaultValue" : "new",
+            "allowedValues" : 
+            [
+                "new",
+                "existing"
+            ],
+            "metadata": 
+            {
+                "Description": "Indicates whether the Storage Account is new or existing"
+            }
+        },
+
+        "storageAccountType": 
+        {
+            "type": "string",
+            "metadata": 
+            {
+                "description": "The type of the Storage Account created"
+            },
+            "defaultValue":"Standard_LRS"
+        },
+
+        "existingStorageAccountRG": 
+        {
+            "type": "string",
+            "metadata": 
+            {
+                "description": "Resource Group of the Existing VM."
+            },
+            "defaultValue" : ""
         },
 
         "adminUsername": 
@@ -108,11 +135,46 @@
         "publicIpName": "[concat( parameters('clusterName'), '-publicIp')]",
         "networkSecurityGroupName": "[concat( parameters('clusterName'), '-nsg')]",
         "networkInterfaceName": "[concat( parameters('clusterName'), '-nif')]",
-        "fullDnsName": "[concat( parameters('clusterName'), parameters('publicDnsName'))]"
+        "fullDnsName": "[concat( parameters('clusterName'), parameters('publicDnsName'))]",
+        "storageAccountSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/storageAccount-',parameters('storageAccountNewOrExisting'),'.json')]"
     },
 
     "resources": 
     [
+        {
+            "name": "storageAccountSetup",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion" : "2015-01-01",
+            "properties" : 
+            {
+                "mode": "Incremental",
+                "templateLink" : 
+                {
+                    "uri" : "[variables('storageAccountSetupURL')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters" : 
+                {
+                    "location": 
+                    {
+                        "value": "[parameters('location')]"
+                    },
+                    "storageAccountType": 
+                    {
+                        "value": "[parameters('storageAccountType')]"
+                    },
+                    "storageAccountName" : 
+                    {
+                        "value": "[parameters('storageAccountName')]"
+                    },
+                    "storageAccountExistingRG": 
+                    {
+                        "value": "[parameters('existingStorageAccountRG')]"
+                    }
+                }
+            }
+        },
+
         {
             "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Network/publicIPAddresses",
@@ -145,17 +207,6 @@
                 {
                     "domainNameLabel": "[concat(variables('fullDnsName'), copyindex())]"
                 }
-            }
-        },
-
-        {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Storage/storageAccounts",
-            "name": "[parameters('newStorageAccount')]",
-            "location": "[parameters('location')]",
-            "properties": 
-            {
-                "accountType": "Standard_LRS"
             }
         },
 
@@ -311,7 +362,7 @@
             "location": "[parameters('location')]",
             "dependsOn": 
             [
-                "[resourceId('Microsoft.Storage/storageAccounts',parameters('newStorageAccount'))]",
+                "storageAccountSetup",
                 "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
             ],
             "plan":
@@ -346,7 +397,7 @@
                         "name": "osdisk",
                         "vhd": 
                         {
-                            "uri": "[concat('http://',parameters('newStorageAccount'),'.blob.core.windows.net/vhds/', variables('repositoryName'),'osdisk.vhd')]"
+                            "uri": "[concat('http://',parameters('storageAccountName'),'.blob.core.windows.net/vhds/', variables('repositoryName'),'osdisk.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -406,7 +457,7 @@
                 "product": "deadline7-2"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts',parameters('newStorageAccount'))]",
+                "storageAccountSetup",
                 "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('networkInterfaceName'), copyindex()))]",
                 "[resourceId('Microsoft.Compute/virtualMachines', variables('repositoryName'))]",
                 "[concat( 'Microsoft.Compute/virtualMachines/', variables('repositoryName'), '/extensions/autoconf')]"
@@ -438,7 +489,7 @@
                         "name": "osdisk",
                         "vhd": 
                         {
-                            "uri": "[concat('http://',parameters('newStorageAccount'),'.blob.core.windows.net/vhds/', variables('slaveName') , copyindex(), '-osdisk.vhd')]"
+                            "uri": "[concat('http://',parameters('storageAccountName'),'.blob.core.windows.net/vhds/', variables('slaveName') , copyindex(), '-osdisk.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"

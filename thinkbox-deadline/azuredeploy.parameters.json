@@ -11,8 +11,17 @@
     "publicDnsName": {
       "value": "pubdns#####"
     },
-    "newStorageAccount": {
+    "storageAccountName": {
       "value": "deadline######"
+    },
+    "storageAccountNewOrExisting": {
+      "value": "new"
+    },
+    "storageAccountType": {
+      "value": "Standard_LRS"
+    },
+    "existingStorageAccountRG": {
+      "value": ""
     },
     "adminUsername": {
       "value": "admin"
