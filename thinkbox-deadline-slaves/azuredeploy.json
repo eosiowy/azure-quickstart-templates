@@ -180,12 +180,19 @@
             "metadata": {
                 "description": "Number of Slaves Virtual Machines to start."
             }
+        },
+        "repositoryPath": {
+            "type": "string",
+            "metadata": {
+                "description": "Path to your Deadline Repository."
+            }
         }
     },
     "variables": {
         "imagePublisher": "thinkbox",
         "imageOffer": "deadline7-2",
         "imageSKU": "deadline-slave-7-2",
+        "version": "1.0.0",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',parameters('subnetName'))]",
@@ -370,20 +377,19 @@
                 "osProfile": {
                     "computername": "[concat(parameters('vmName'), '-', copyindex())]",
                     "adminUsername": "[parameters('adminUsername')]",
-                    "adminPassword": "[parameters('adminPassword')]"
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "customData": "[base64(parameters('repositoryPath'))]"
                 },
                 "storageProfile": {
-                    "imageReference": {
-                        "publisher": "[variables('imagePublisher')]",
-                        "offer": "[variables('imageOffer')]",
-                        "sku": "[variables('imageSKU')]",
-                        "version": "latest"
-                    },
                     "osDisk": {
                         "name": "osdisk1",
                         "vhd": {
-                            "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'),'.vhd')]"
+                            "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'), copyindex(),'.vhd')]"
                         },
+                        "image": {
+                            "uri": "https://slaves.blob.core.windows.net/vhds/slave.vhd"
+                        },
+                        "osType": "Windows",
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
                     }
