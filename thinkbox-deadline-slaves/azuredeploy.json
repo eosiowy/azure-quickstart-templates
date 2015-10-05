@@ -387,7 +387,7 @@
                             "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'), copyindex(),'.vhd')]"
                         },
                         "image": {
-                            "uri": "https://slaves.blob.core.windows.net/vhds/slave.vhd"
+                            "uri": "https://slavestwo.blob.core.windows.net/vhds/slave.vhd"
                         },
                         "osType": "Windows",
                         "caching": "ReadWrite",
@@ -402,6 +402,35 @@
                     ]
                 }
             }
+        },
+        {
+            "apiVersion": "[variables('api-version')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat( parameters('vmName'), '/slave_startup-', copyindex())]",
+            "location": "[parameters('location')]",
+            "dependsOn": 
+            [
+                "[resourceId('Microsoft.Compute/virtualMachines', concat(parameters('vmName'), '-', copyindex()) )]"
+            ],
+            "copy": {
+                "name": "extensionLoop",
+                "count": "[parameters('numberOfSlaves')]"
+            },
+            "properties":
+            {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.4",
+                "settings":
+                {
+                    "fileUris": 
+                    [ 
+                        "https://deadline.blob.core.windows.net/scripts/slave_startup.py"
+                    ],
+                    "commandToExecute": "[concat('C:\\Python27\\python.exe', ' slave_startup.py')]"
+                }
+            }
         }
+
     ]
 }
