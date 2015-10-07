@@ -387,7 +387,7 @@
                             "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'), copyindex(),'.vhd')]"
                         },
                         "image": {
-                            "uri": "https://slavestwo.blob.core.windows.net/vhds/slave.vhd"
+                            "uri": "https://slaves.blob.core.windows.net/vhds/slave.vhd"
                         },
                         "osType": "Windows",
                         "caching": "ReadWrite",
@@ -406,7 +406,7 @@
         {
             "apiVersion": "[variables('api-version')]",
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat( parameters('vmName'), '/slave_startup-', copyindex())]",
+            "name": "[concat( parameters('vmName'), '-', copyindex(), '/slave_startup-', copyindex())]",
             "location": "[parameters('location')]",
             "dependsOn": 
             [
