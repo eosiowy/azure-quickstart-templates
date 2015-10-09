@@ -99,20 +99,33 @@
                             "type": "Standard_LRS"
                         }
                     },
+
                     {
-                        "name": "publicDnsName",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Public DNS Name",
-                        "defaultValue": "",
-                        "toolTip": "",
-                        "constraints": 
-                        {
-                            "required": true,
-                            "regex": "^[a-z0-9]{1,30}$",
-                            "validationMessage": "Only lowercase alphanumeric characters are allowed, and the value must be 1-30 characters long."
+                        "name": "virtualNetwork",
+                        "type": "Microsoft.Network.VirtualNetworkCombo",
+                        "label": {
+                            "virtualNetwork": "Virtual network",
+                            "subnets": "Subnets"
                         },
-                        "options": {}
+                        "constraints": {
+                            "minAddressPrefixSize": "/16"
+                        },    
+                        "subnets": {
+                            "subnet1": {
+                                "label": "First subnet",
+                                "defaultValue": {
+                                    "name": "subnet-1",
+                                    "addressPrefixSize": "/24"
+                                },
+                                "constraints": {
+                                    "minAddressPrefixSize": "/24",
+                                    "minAddressCount": 12,
+                                    "requireContiguousAddresses": true
+                                }
+                            }
+                        }
                     },
+
                     {
                         "name": "repositoryVMSize",
                         "type": "Microsoft.Compute.SizeSelector",
@@ -195,7 +208,12 @@
             "storageAccountNewOrExisting": "[steps('infrastructureConfig').storageAccount.newOrExisting]",
             "storageAccountType": "[steps('infrastructureConfig').storageAccount.type]",
             "existingStorageAccountRG": "[steps('infrastructureConfig').storageAccount.resourceGroup]",
-            "publicDnsName": "[steps('infrastructureConfig').publicDnsName]",
+            "virtualNetworkName": "[steps('infrastructureConfig').virtualNetwork.name]",
+            "virtualNetworkAddressPrefix": "[steps('infrastructureConfig').virtualNetwork.addressPrefix]",
+            "virtualNetworkNewOrExisting": "[steps('infrastructureConfig').virtualNetwork.newOrExisting]",
+            "existingVirtualNetworkRG": "[steps('infrastructureConfig').virtualNetwork.resourceGroup]",
+            "subnetName": "[steps('infrastructureConfig').virtualNetwork.subnet1.name]",
+            "subnetAddressSpace": "[steps('infrastructureConfig').virtualNetwork.subnet1.addressPrefix]",
             "clusterName": "[steps('infrastructureConfig').clusterName]",
             "repositoryVMSize": "[steps('infrastructureConfig').repositoryVMSize]",
             "slaveVMSize": "[steps('infrastructureConfig').slaveVMSize]",

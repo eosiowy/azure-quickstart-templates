@@ -10,7 +10,8 @@
             "metadata": 
             {
                 "description": "The region to deploy the resources into"
-            }
+            },
+            "defaultValue": "westus"
         },
 
         "clusterName":
@@ -19,16 +20,8 @@
             "metadata":
             {
                 "description": "Prefix for all items created by this template."
-            }
-        },
-
-        "publicDnsName": 
-        {
-            "type": "string",
-            "metadata": 
-            {
-                "description": "Unique public DNS prefix for the deployment. The fqdn will look something like '<dnsname>.westus.cloudapp.azure.com'. Up to 62 chars, digits or dashes, lowercase, should start with a letter: must conform to '^[a-z][a-z0-9-]{1,61}[a-z0-9]$'."
-            }
+            },
+            "defaultValue": "dl"
         },
 
         "storageAccountName": 
@@ -37,13 +30,14 @@
             "metadata": 
             {
                 "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
-            }
+            },
+            "defaultValue": "ericosiowy"
         },
 
         "storageAccountNewOrExisting" : 
         {
             "type": "string",
-            "defaultValue" : "new",
+            "defaultValue" : "existing",
             "allowedValues" : 
             [
                 "new",
@@ -70,9 +64,74 @@
             "type": "string",
             "metadata": 
             {
-                "description": "Resource Group of the Existing VM."
+                "description": "Resource Group of the existing storage account."
             },
             "defaultValue" : ""
+        },
+
+        "virtualNetworkName": 
+        {
+            "type": "string",
+            "metadata": 
+            {
+                "description": "Name of the Virtual Network."
+            },
+            "defaultValue": "vnet"
+        },
+
+        "virtualNetworkAddressPrefix":
+        {
+            "type": "string",
+            "metadata":
+            {
+                "description": "Address space for the virtual network."
+            },
+            "defaultValue": "10.2.0.0/16"
+        },
+
+        "virtualNetworkNewOrExisting":
+        {
+            "type": "string",
+            "defaultValue": "existing",
+            "allowedValues":
+            [
+                "new",
+                "existing"
+            ],
+            "metadata": 
+            {
+                "description": "Indicates whether the Virtual Network is new or existing"
+            }
+        },
+
+        "existingVirtualNetworkRG":
+        {
+            "type": "string",
+            "metadata":
+            {
+                "description": "Resource Group of the exising virtual network."
+            },
+            "defaultValue": ""
+        },
+
+        "subnetName":
+        {
+            "type": "string",
+            "metadata":
+            {
+                "description": "Name of the subnet."
+            },
+            "defaultValue": "subnet"
+        },
+
+        "subnetAddressSpace":
+        {
+            "type": "string",
+            "metadata":
+            {
+                "description": "The availble address space for ips in this subnet."
+            },
+            "defaultValue": "10.2.0.0/24"
         },
 
         "adminUsername": 
@@ -81,7 +140,8 @@
             "metadata": 
             {
                 "description": "The name of the administrator of the new VM. Exclusion list: 'admin','administrator'"
-            }
+            },
+            "defaultValue": "thinkbox"
         },
         "adminPassword": 
         {
@@ -89,7 +149,8 @@
             "metadata": 
             {
                 "description": "The password for the administrator account of the new VM"
-            }
+            },
+            "defaultValue": "F00bar123"
         },
 
         "repositoryVMSize":
@@ -118,25 +179,22 @@
             "metadata": 
             {
                 "description": "The number of slave vms to start."
-            }
+            },
+            "defaultValue": 2
         }
     },
 
     "variables": 
     {
-        "virtualNetworkName": "[concat( parameters('clusterName'), '-vnet')]",
-        "vnetAddressRange": "10.0.0.0/16",
-        "subnetAddressRange": "10.0.0.0/24",
-        "subnetName":  "[concat( parameters('clusterName'), '-subnet')]",
-        "subnet-id": "[concat(resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName')),'/subnets/',variables('subnetName'))]",
         "apiVersion": "2015-05-01-preview",
         "repositoryName": "[concat( parameters('clusterName'), '-repository')]",
         "slaveName": "[concat( parameters('clusterName'), '-slave')]",
         "publicIpName": "[concat( parameters('clusterName'), '-publicIp')]",
         "networkSecurityGroupName": "[concat( parameters('clusterName'), '-nsg')]",
         "networkInterfaceName": "[concat( parameters('clusterName'), '-nif')]",
-        "fullDnsName": "[concat( parameters('clusterName'), parameters('publicDnsName'))]",
-        "storageAccountSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/storageAccount-',parameters('storageAccountNewOrExisting'),'.json')]"
+        "fullDnsName": "[concat( parameters('clusterName'), '-public-dns')]",
+        "storageAccountSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/storageAccount-',parameters('storageAccountNewOrExisting'),'.json')]",
+        "virtualNetworkSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/virtualNetwork-',parameters('virtualNetworkNewOrExisting'),'.json')]"
     },
 
     "resources": 
@@ -251,35 +309,50 @@
             }
         },
 
+
         {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Network/virtualNetworks",
-            "name": "[variables('virtualNetworkName')]",
-            "dependsOn":
-            [
-                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
-            ],
-            "location": "[parameters('location')]",
-            "properties": 
+            "name": "virtualNetworkSetup",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion" : "2015-01-01",
+            "properties" : 
             {
-                "addressSpace": 
+                "mode": "Incremental",
+                "templateLink" : 
                 {
-                    "addressPrefixes": [ "[variables('vnetAddressRange')]" ]
+                    "uri" : "[variables('virtualNetworkSetupURL')]",
+                    "contentVersion": "1.0.0.0"
                 },
-                "subnets": 
-                [
+                "parameters" : 
+                {
+                    "location": 
                     {
-                        "name": "[variables('subnetName')]",
-                        "properties": 
-                        {
-                            "addressPrefix": "[variables('subnetAddressRange')]",
-                            "networkSecurityGroup":
-                            {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
-                            }
-                        }
+                        "value": "[parameters('location')]"
+                    },
+                    "virtualNetworkName":
+                    {
+                        "value": "[parameters('virtualNetworkName')]"
+                    },
+                    "virtualNetworkAddressPrefix":
+                    {
+                        "value": "[parameters('virtualNetworkAddressPrefix')]"
+                    },
+                    "subnetName":
+                    {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetAddressSpace":
+                    {
+                        "value": "[parameters('subnetAddressSpace')]"
+                    },
+                    "networkSecurityGroupName":
+                    {
+                        "value": "[variables('networkSecurityGroupName')]"
+                    },
+                    "existingVirtualNetworkRG":
+                    {
+                        "value": "[parameters('existingVirtualNetworkRG')]"
                     }
-                ]
+                }
             }
         },
 
@@ -290,7 +363,7 @@
             "location": "[parameters('location')]",
             "dependsOn": 
             [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+                "virtualNetworkSetup",
                 "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
             ],
             "properties": 
@@ -304,7 +377,7 @@
                             "privateIPAllocationMethod": "Dynamic",
                             "subnet": 
                             {
-                                "id": "[variables('subnet-id')]"
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), '/subnets/', parameters('subnetName') )]"
                             },
                             "publicIPAddress":
                             {
@@ -329,7 +402,7 @@
             },
             "dependsOn": 
             [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+                "virtualNetworkSetup",
                 "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIpName'), copyindex()))]"
             ],
             "properties": 
@@ -343,7 +416,7 @@
                             "privateIPAllocationMethod": "Dynamic",
                             "subnet": 
                             {
-                                "id": "[variables('subnet-id')]"
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), '/subnets/', parameters('subnetName') )]"
                             },
                             "publicIPAddress":
                             {

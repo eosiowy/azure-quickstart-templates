@@ -1,0 +1,67 @@
+{
+  	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  	"contentVersion": "1.0.0.0",
+  	"parameters": {
+	    "location": {
+	      "type": "string"
+	    },
+	    "virtualNetworkName": {
+	    	"type": "string"
+    	},
+	    "virtualNetworkAddressPrefix": {
+	    	"type": "string"
+		},
+	    "subnetName": {
+	    	"type": "string"
+	    },
+	    "subnetAddressSpace": {
+	    	"type": "string"
+		},
+	    "networkSecurityGroupName": {
+	    	"type": "string"
+		},
+		"existingVirtualNetworkRG": {
+			"type": "string",
+			"defaultValue": ""
+		}
+	},
+	"resources": [
+    	{
+    		"type": "Microsoft.Network/virtualNetworks",
+    		"name": "[parameters('virtualNetworkName')]",
+    		"apiVersion": "2015-06-15",
+    		"location": "[parameters('location')]",
+    		"properties":
+    		{
+    			"addressSpace":
+    			{
+    				"addressPrefixes": [ "[parameters('virtualNetworkAddressPrefix')]" ]
+    			},
+    			"subnets":
+    			[
+    				{
+    					"name": "[parameters('subnetName')]",
+    					"properties":
+    					{
+    						"addressPrefix": "[parameters('subnetAddressSpace')]",
+    						"networkSecurityGroup":
+    						{
+    							"id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName') )]"
+    						}
+    					}
+    				}
+    			]
+    		}
+    	}
+    ],
+    "outputs": {
+    	"virtualNetworkId": {
+	    	"value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+	    	"type": "string"
+	    },
+	    "subnetId": {
+	    	"value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'), '/subnets/', parameters('subnetName') )]",
+	    	"type": "string"
+	    }
+    }
+}
