@@ -366,6 +366,11 @@
                 "name": "vmLoop",
                 "count": "[parameters('numberOfSlaves')]"
             },
+            "plan": {
+                "name": "deadline-slave-7-2",
+                "publisher": "thinkboxsoftware",
+                "product": "deadline7-2"
+            },
             "dependsOn": [
                 "[concat('Microsoft.Storage/storageAccounts/', parameters('newStorageAccountName'))]",
                 "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), '-', copyindex())]"
@@ -381,15 +386,17 @@
                     "customData": "[base64(parameters('repositoryPath'))]"
                 },
                 "storageProfile": {
+                    "imageReference": {
+                        "publisher": "thinkboxsoftware",
+                        "offer": "deadline7-2",
+                        "sku": "deadline-slave-7-2",
+                        "version": "1.0.0"
+                    },
                     "osDisk": {
                         "name": "osdisk1",
                         "vhd": {
                             "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'), copyindex(),'.vhd')]"
                         },
-                        "image": {
-                            "uri": "https://slaves.blob.core.windows.net/vhds/slave.vhd"
-                        },
-                        "osType": "Windows",
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
                     }
