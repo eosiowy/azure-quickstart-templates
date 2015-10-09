@@ -10,8 +10,7 @@
             "metadata": 
             {
                 "description": "The region to deploy the resources into"
-            },
-            "defaultValue": "westus"
+            }
         },
 
         "clusterName":
@@ -20,8 +19,7 @@
             "metadata":
             {
                 "description": "Prefix for all items created by this template."
-            },
-            "defaultValue": "dl"
+            }
         },
 
         "storageAccountName": 
@@ -31,13 +29,13 @@
             {
                 "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
             },
-            "defaultValue": "ericosiowy"
+            "defaultValue": "storage"
         },
 
         "storageAccountNewOrExisting" : 
         {
             "type": "string",
-            "defaultValue" : "existing",
+            "defaultValue" : "new",
             "allowedValues" : 
             [
                 "new",
@@ -92,7 +90,7 @@
         "virtualNetworkNewOrExisting":
         {
             "type": "string",
-            "defaultValue": "existing",
+            "defaultValue": "new",
             "allowedValues":
             [
                 "new",
@@ -140,8 +138,7 @@
             "metadata": 
             {
                 "description": "The name of the administrator of the new VM. Exclusion list: 'admin','administrator'"
-            },
-            "defaultValue": "thinkbox"
+            }
         },
         "adminPassword": 
         {
@@ -149,8 +146,7 @@
             "metadata": 
             {
                 "description": "The password for the administrator account of the new VM"
-            },
-            "defaultValue": "F00bar123"
+            }
         },
 
         "repositoryVMSize":
@@ -179,8 +175,7 @@
             "metadata": 
             {
                 "description": "The number of slave vms to start."
-            },
-            "defaultValue": 2
+            }
         }
     },
 
@@ -344,10 +339,6 @@
                     {
                         "value": "[parameters('subnetAddressSpace')]"
                     },
-                    "networkSecurityGroupName":
-                    {
-                        "value": "[variables('networkSecurityGroupName')]"
-                    },
                     "existingVirtualNetworkRG":
                     {
                         "value": "[parameters('existingVirtualNetworkRG')]"
@@ -364,6 +355,7 @@
             "dependsOn": 
             [
                 "virtualNetworkSetup",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]",
                 "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
             ],
             "properties": 
@@ -385,7 +377,11 @@
                             }
                         }
                     }
-                ]
+                ],
+                "networkSecurityGroup":
+                {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+                }
             }
         },
 
@@ -403,6 +399,7 @@
             "dependsOn": 
             [
                 "virtualNetworkSetup",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]",
                 "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIpName'), copyindex()))]"
             ],
             "properties": 
@@ -424,7 +421,11 @@
                             }
                         }
                     }
-                ]
+                ],
+                "networkSecurityGroup":
+                {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+                }
             }
         },
 

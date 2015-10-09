@@ -17,9 +17,6 @@
 	    "subnetAddressSpace": {
 	    	"type": "string"
 		},
-	    "networkSecurityGroupName": {
-	    	"type": "string"
-		},
 		"existingVirtualNetworkRG": {
 			"type": "string",
 			"defaultValue": ""
@@ -44,10 +41,6 @@
     					"properties":
     					{
     						"addressPrefix": "[parameters('subnetAddressSpace')]",
-    						"networkSecurityGroup":
-    						{
-    							"id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName') )]"
-    						}
     					}
     				}
     			]

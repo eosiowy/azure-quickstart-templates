@@ -17,9 +17,6 @@
 	    "subnetAddressSpace": {
 	    	"type": "string"
 		},
-	    "networkSecurityGroupName": {
-	    	"type": "string"
-		},
 		"existingVirtualNetworkRG": {
 			"type": "string",
 			"defaultValue": ""
