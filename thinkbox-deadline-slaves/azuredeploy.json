@@ -7,19 +7,14 @@
             "metadata": {
                 "description": "Region where the resources will be deployed"
             },
-            "allowedValues": [
-                "East US",
-                "East US 2",
-                "East Asia",
-                "West US",
-                "West Europe",
-                "Southeast Asia",
-                "South Central US",
-                "East US 2",
-                "Japan East",
-                "Japan West",
-                "Central US"
-            ]
+            "defaultValue": "westus"
+        },
+        "clusterName": {
+            "type": "String",
+            "metadata": {
+                "description": "Identifier for all resources started by this template."
+            },
+            "defaultValue": "dl"
         },
         "vpnType": {
             "type": "String",
@@ -43,13 +38,15 @@
             "type": "string",
             "metadata": {
                 "description": "Public IP of your StrongSwan Instance"
-            }
+            },
+            "defaultValue": "184.71.72.166"
         },
         "localAddressPrefix": {
             "type": "string",
             "metadata": {
                 "description": "CIDR block representing the address space of the other network's Subnet"
-            }
+            },
+            "defaultValue": "192.168.0.0/16"
         },
         "virtualNetworkName": {
             "type": "string",
@@ -74,6 +71,7 @@
         },
         "subnetPrefix": {
             "type": "string",
+            "defaultValue": "10.3.0.0/24",
             "metadata": {
                 "description": "CIDR block for VM subnet, subset of azureVNetAddressPrefix address space"
             }
@@ -110,7 +108,8 @@
             "type": "string",
             "metadata": {
                 "description": "Shared key (PSK) for IPSec tunnel"
-            }
+            },
+            "defaultValue": "thinkKey"
         },
         "vmName": {
             "type": "string",
@@ -119,7 +118,7 @@
                 "description": "Name of the sample VM to create"
             }
         },
-        "vmSize": {
+        "slaveVMSize": {
             "type": "string",
             "defaultValue": "Standard_A1",
             "allowedValues": [
@@ -148,19 +147,22 @@
             "type": "string",
             "metadata": {
                 "description": "Username for sample VM"
-            }
+            },
+            "defaultValue": "thinkbox"
         },
         "adminPassword": {
             "type": "securestring",
             "metadata": {
                 "description": "User password for sample VM"
-            }
+            },
+            "defaultValue": "F00bar123"
         },
-        "newStorageAccountName": {
+        "storageAccountName": {
             "type": "string",
             "metadata": {
                 "description": "Stoarge Account Name for VM Disk"
-            }
+            },
+            "defaultValue": "ericosiowy"
         },
         "storageAccountType": {
             "type": "string",
@@ -175,17 +177,40 @@
             },
             "defaultValue": "Standard_LRS"
         },
+        "storageAccountNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues":
+            [
+                "new",
+                "existing"
+            ],
+            "metadata":
+            {
+                "description": "Indicates whether the Storage Account is new or existing."
+            }
+        },
+        "existingStorageAccountRG": {
+            "type": "string",
+            "metadata":
+            {
+                "description": "Resource Group of the existing storage account."
+            },
+            "defaultValue": ""
+        },
         "numberOfSlaves": {
             "type": "int",
             "metadata": {
                 "description": "Number of Slaves Virtual Machines to start."
-            }
+            },
+            "defaultValue": 2
         },
         "repositoryPath": {
             "type": "string",
             "metadata": {
                 "description": "Path to your Deadline Repository."
-            }
+            },
+            "defaultValue": "\\\\fs-01\\deadline7-2"
         }
     },
     "variables": {
@@ -193,13 +218,21 @@
         "imageOffer": "deadline7-2",
         "imageSKU": "deadline-slave-7-2",
         "version": "1.0.0",
-        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+
+        "localGatewayName": "[concat(parameters('clusterName'),'-', parameters('localGatewayName'))]",
+        "connectionName": "[concat(parameters('clusterName'), '-', parameters('connectionName'))]",
+        "gatewayName": "[concat(parameters('clusterName'), '-', parameters('gatewayName'))]",
+        "gatewayPublicIPName": "[concat(parameters('clusterName'), '-', parameters('gatewayPublicIPName'))]",
+        "vmName": "[concat(parameters('clusterName'), '-', parameters('vmName'))]",
+        "virtualNetworkName": "[concat(parameters('clusterName'), '-', parameters('virtualNetworkName'))]",
+
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', concat(parameters('clusterName'), '-', parameters('virtualNetworkName')))]",
         "gatewaySubnetRef": "[concat(variables('vnetID'),'/subnets/','GatewaySubnet')]",
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',parameters('subnetName'))]",
-        "nicName": "[concat(parameters('vmName'), '-nic')]",
+        "nicName": "[concat(parameters('clusterName'), '-', parameters('vmName'), '-nic')]",
         "vmStorageAccountContainerName": "vhds",
         "OSDiskName": "osDisk",
-        "vmPublicIPName": "[concat(parameters('vmName'), '-publicIP')]",
+        "vmPublicIPName": "[concat(parameters('clusterName'), '-', parameters('vmName'), '-publicIP')]",
         "api-version": "2015-06-15",
         "storage-api-version": "2015-05-01-preview"
     },
@@ -207,7 +240,7 @@
         {
             "apiVersion": "[variables('api-version')]",
             "type": "Microsoft.Network/localNetworkGateways",
-            "name": "[parameters('localGatewayName')]",
+            "name": "[variables('localGatewayName')]",
             "location": "[parameters('location')]",
             "properties": {
                 "localNetworkAddressSpace": {
@@ -220,19 +253,19 @@
         },
         {
             "apiVersion": "[variables('api-version')]",
-            "name": "[parameters('connectionName')]",
+            "name": "[variables('connectionName')]",
             "type": "Microsoft.Network/connections",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('gatewayName'))]",
-                "[concat('Microsoft.Network/localNetworkGateways/', parameters('localGatewayName'))]"
+                "[concat('Microsoft.Network/virtualNetworkGateways/', variables('gatewayName'))]",
+                "[concat('Microsoft.Network/localNetworkGateways/', variables('localGatewayName'))]"
             ],
             "properties": {
                 "virtualNetworkGateway1": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('gatewayName'))]"
+                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('gatewayName'))]"
                 },
                 "localNetworkGateway2": {
-                    "id": "[resourceId('Microsoft.Network/localNetworkGateways', parameters('localGatewayName'))]"
+                    "id": "[resourceId('Microsoft.Network/localNetworkGateways', variables('localGatewayName'))]"
                 },
                 "connectionType": "IPsec",
                 "routingWeight": 10,
@@ -242,7 +275,7 @@
         {
             "apiVersion": "[variables('api-version')]",
             "type": "Microsoft.Network/virtualNetworks",
-            "name": "[parameters('virtualNetworkName')]",
+            "name": "[variables('virtualNetworkName')]",
             "location": "[parameters('location')]",
             "properties": {
                 "addressSpace": {
@@ -269,7 +302,7 @@
         {
             "apiVersion": "[variables('api-version')]",
             "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[parameters('gatewayPublicIPName')]",
+            "name": "[variables('gatewayPublicIPName')]",
             "location": "[parameters('location')]",
             "properties": {
                 "publicIPAllocationMethod": "Dynamic"
@@ -290,7 +323,7 @@
         },
         {
             "apiVersion": "[variables('storage-api-version')]",
-            "name": "[parameters('newStorageAccountName')]",
+            "name": "[parameters('storageAccountName')]",
             "location": "[parameters('location')]",
             "type": "Microsoft.Storage/storageAccounts",
             "properties": {
@@ -300,11 +333,11 @@
         {
             "apiVersion": "[variables('api-version')]",
             "type": "Microsoft.Network/virtualNetworkGateways",
-            "name": "[parameters('gatewayName')]",
+            "name": "[variables('gatewayName')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[concat('Microsoft.Network/publicIPAddresses/', parameters('gatewayPublicIPName'))]",
-                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
             ],
             "properties": {
                 "ipConfigurations": [
@@ -315,7 +348,7 @@
                                 "id": "[variables('gatewaySubnetRef')]"
                             },
                             "publicIPAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('gatewayPublicIPName'))]"
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('gatewayPublicIPName'))]"
                             }
                         },
                         "name": "vnetGatewayConfig"
@@ -337,8 +370,8 @@
             },
             "dependsOn": [
                 "[concat('Microsoft.Network/publicIPAddresses/', variables('vmPublicIPName'), '-', copyindex())]",
-                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]",
-                "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('gatewayName'))]"
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/virtualNetworkGateways/', variables('gatewayName'))]"
             ],
             "properties": {
                 "ipConfigurations": [
@@ -360,7 +393,7 @@
         {
             "apiVersion": "[variables('api-version')]",
             "type": "Microsoft.Compute/virtualMachines",
-            "name": "[concat(parameters('vmName'), '-', copyindex())]",
+            "name": "[concat(variables('vmName'), '-', copyindex())]",
             "location": "[parameters('location')]",
             "copy": {
                 "name": "vmLoop",
@@ -372,15 +405,15 @@
                 "product": "deadline7-2"
             },
             "dependsOn": [
-                "[concat('Microsoft.Storage/storageAccounts/', parameters('newStorageAccountName'))]",
+                "[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]",
                 "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'), '-', copyindex())]"
             ],
             "properties": {
                 "hardwareProfile": {
-                    "vmSize": "[parameters('vmSize')]"
+                    "vmSize": "[parameters('slaveVMSize')]"
                 },
                 "osProfile": {
-                    "computername": "[concat(parameters('vmName'), '-', copyindex())]",
+                    "computername": "[concat(variables('vmName'), '-', copyindex())]",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]",
                     "customData": "[base64(parameters('repositoryPath'))]"
@@ -395,7 +428,7 @@
                     "osDisk": {
                         "name": "osdisk1",
                         "vhd": {
-                            "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'), copyindex(),'.vhd')]"
+                            "uri": "[concat('http://',parameters('storageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'), copyindex(),'.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -413,11 +446,11 @@
         {
             "apiVersion": "[variables('api-version')]",
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat( parameters('vmName'), '-', copyindex(), '/slave_startup-', copyindex())]",
+            "name": "[concat( variables('vmName'), '-', copyindex(), '/slave_startup-', copyindex())]",
             "location": "[parameters('location')]",
             "dependsOn": 
             [
-                "[resourceId('Microsoft.Compute/virtualMachines', concat(parameters('vmName'), '-', copyindex()) )]"
+                "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vmName'), '-', copyindex()) )]"
             ],
             "copy": {
                 "name": "extensionLoop",

@@ -15,40 +15,61 @@
 
             {
                 "name": "adminPassword",
-                "type": "Microsoft.Compute.CredentialsCombo",
-                "label":
+                "type": "Microsoft.Common.PasswordBox",
+                "label": 
                 {
                     "password": "Password",
-                    "confirmPassword": "Confirm Password"
+                    "confirmPassword": "Confirm password"
                 },
-                "toolTip": 
+                "toolTip": "Admin password for the virtual machines and the OpsCenter admin account.",
+                "constraints": 
                 {
-                    "password": "Admin password for the Repository and Slave virtual machines."
+                    "required": true,
+                    "regex": "^(?:(?=.*[a-z])(?:(?=.*[A-Z])(?=.*[\\d\\W])|(?=.*\\W)(?=.*\\d))|(?=.*\\W)(?=.*[A-Z])(?=.*\\d)).{6,72}$",
+                    "validationMessage": "The password must be between 6 and 72 characters long, and contain characters from at least 3 of the following groups: uppercase characters, lowercase characters, numbers, and special characters."
                 },
-                "osPlatform": "Windows"
+                "options": 
+                {
+                    "hideConfirmation": false
+                }
             }
         ],
         "steps": 
         [
             {
-                "name": "configuration",
-                "label": "Additional Configuration",
+                "name": "infrastructureConfig",
+                "label": "Infrastructure settings",
                 "subLabel": 
                 {
-                    "preValidation": "Configure additional settings",
+                    "preValidation": "Configure the infrastructure settings",
                     "postValidation": "Done"
                 },
-                "bladeTitle": "Infrastructure Settings",
+                "bladeTitle": "Infrastructure settings",
                 "elements":
                 [
                     {
+                        "name": "clusterName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Cluster Prefix",
+                        "defaultValue": "dl",
+                        "toolTip": "Prefix for everything this template creates.",
+                        "constraints": 
+                        {
+                            "required": true,
+                            "regex": "^[a-z0-9]{1,30}$",
+                            "validationMessage": "Only lowercase alphanumeric characters are allowed, and the value must be 1-30 characters long."
+                        },
+                        "options": {}
+                    },
+                    {
                         "name": "slaveCount",
                         "type": "Microsoft.Common.DropDown",
+                        "label": "Number of Slave VMs",
                         "defaultValue": "2",
-                        "toolTip": "Number of Slave Instances to start.",
-                        "constraints":
+                        "toolTip": "",
+                        "constraints": 
                         {
-                            "allowedValues":
+                            "allowedValues": 
                             [
                                 {
                                     "label": "2",
@@ -72,33 +93,168 @@
                     {
                         "name": "storageAccount",
                         "type": "Microsoft.Storage.StorageAccountSelector",
-                        "label": "Storage Account",
-                        "defaultValue":
+                        "label": "Storage account",
+                        "defaultValue": 
                         {
                             "type": "Standard_LRS"
                         }
                     },
+
+                    
                     {
-                        "name": "dnsName",
+                        "name": "slaveVMSize",
+                        "type": "Microsoft.Compute.SizeSelector",
+                        "label": "Slave Virtual machine size",
+                        "toolTip": "The size of the virtual machine for the slaves.",
+                        "recommendedSizes": [
+                            "Standard_A1",
+                            "Standard_A2",
+                            "Standard_A3"
+                        ],
+                        "constraints": {
+                            "allowedSizes": [
+                              "Standard_A1",
+                              "Standard_A2",
+                              "Standard_A3",
+                              "Standard_A4",
+                              "Standard_A11",
+                              "Standard_D1",
+                              "Standard_D2",
+                              "Standard_D3",
+                              "Standard_D4",
+                              "Standard_D11",
+                              "Standard_D12",
+                              "Standard_D13",
+                              "Standard_D14"
+                            ]
+                        },
+                        "osPlatform": "Windows",
+                        "imageReference": {
+                            "publisher": "thinkbox",
+                            "offer": "deadline7-2",
+                            "sku": "deadline-slave-7-2"
+                        },
+                        "count": "[steps('infrastructureConfig').slaveCount]"
+                    }
+                ]
+            },
+            {
+                "name": "vpnConfig",
+                "label": "VPN Settings",
+                "subLabel": 
+                {
+                    "preValidation": "Configure the vpn settings",
+                    "postValidation": "Done"
+                },
+                "bladeTitle": "VPN settings",
+                "elements":
+                [
+                    {
+                        "name": "localGatewayIpAddress",
                         "type": "Microsoft.Common.TextBox",
-                        "label": "DNS Name",
-                        "toolTip": "The DNS name for the virtual network.",
-                        "constraints":
+                        "label": "Local Gateway Ip Address",
+                        "defaultValue": "",
+                        "toolTip": "External Ip address of your local VPN device.",
+                        "constraints": 
+                        {
+                            "required": true,
+                            "regex": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                            "validationMessage": "Ip addresses only. eg '127.0.0.1'"
+                        },
+                        "options": {}
+                    },   
+
+                    {
+                        "name": "localAddressPrefix",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Local Address Space",
+                        "defaultValue": "",
+                        "toolTip": "CIDR block of your local network.",
+                        "constraints": 
+                        {
+                            "required": true,
+                            "regex": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$",
+                            "validationMessage": "CIDR block only. eg '127.0.0.1/24'"
+                        },
+                        "options": {}
+                    },   
+
+                    {
+                        "name": "virtualNetwork",
+                        "type": "Microsoft.Network.VirtualNetworkCombo",
+                        "label": {
+                            "virtualNetwork": "Virtual network",
+                            "subnets": "Subnets"
+                        },
+                        "constraints": {
+                            "minAddressPrefixSize": "/16"
+                        },    
+                        "subnets": {
+                            "subnet1": {
+                                "label": "First subnet",
+                                "defaultValue": {
+                                    "name": "subnet-1",
+                                    "addressPrefixSize": "/24"
+                                },
+                                "constraints": {
+                                    "minAddressPrefixSize": "/29",
+                                    "minAddressCount": 12,
+                                    "requireContiguousAddresses": true
+                                }
+                            },
+                            "gateway": {
+                                "label": "Gateway subnet",
+                                "defaultValue": {
+                                    "name": "gateway-subnet",
+                                    "addressPrefixSize": "/29"
+                                },
+                                "constraints": {
+                                    "minAddressPrefixSize": "/29",
+                                    "minAddressCount": 8,
+                                    "requireContiguousAddresses": true
+                                }
+                            }
+                        }
+                    },
+
+                    {
+                        "name": "sharedKey",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Shared Key",
+                        "defaultValue": "",
+                        "toolTip": "Key shared between your local VPN Device and the Azure Gateway.",
+                        "constraints": 
                         {
                             "required": true
-                        }
+                        },
+                        "options": {}
                     }
                 ]
             }
+
         ],
         "outputs": 
         {
             "location": "[location()]",
-            "adminUsername": "[steps('basic').adminUsername]",
-            "adminPassword": "[steps('basic').adminPassword]",
-            "numberOfSlaves": "[steps('configuration').slaveCount]",
-            "publicDnsName": "[steps('configuration').dnsName]",
-            "newStorageAccount": "[steps('configuration').storageAccount.name]"
+            "adminUsername": "[basics('adminUsername')]",
+            "adminPassword": "[basics('adminPassword')]",
+
+            "storageAccountName": "[steps('infrastructureConfig').storageAccount.name]",
+            "storageAccountNewOrExisting": "[steps('infrastructureConfig').storageAccount.newOrExisting]",
+            "storageAccountType": "[steps('infrastructureConfig').storageAccount.type]",
+            "existingStorageAccountRG": "[steps('infrastructureConfig').storageAccount.resourceGroup]",
+            "clusterName": "[steps('infrastructureConfig').clusterName]",
+            "slaveVMSize": "[steps('infrastructureConfig').slaveVMSize]",
+            "numberOfSlaves": "[steps('infrastructureConfig').slaveCount]",
+
+            "localGatewayIpAddress": "[steps('vpnConfig').localGatewayIpAddress]",
+            "localAddressPrefix": "[steps('vpnConfig').localAddressPrefix]",
+            "virtualNetworkName": "[steps('vpnConfig').virtualNetwork.name]",
+            "azureVNetAddressPrefix": "[steps('vpnConfig').virtualNetwork.addressPrefix]",
+            "subnetName": "[steps('vpnConfig').virtualNetwork.subnet1.name]",
+            "subnetPrefix": "[steps('vpnConfig').virtualNetwork.subnet1.addressPrefix]",
+            "gatewaySubnetPrefix": "[steps('vpnConfig').virtualNetwork.gateway.addressPrefix]",
+            "sharedKey": "[steps('vpnConfig').sharedKey]"
         }
     }
 }
