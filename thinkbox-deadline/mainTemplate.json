@@ -22,14 +22,13 @@
             }
         },
 
-        "storageAccountName": 
+        "storageAccount": 
         {
             "type": "string",
             "metadata": 
             {
                 "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
-            },
-            "defaultValue": "storage"
+            }
         },
 
         "storageAccountNewOrExisting" : 
@@ -73,8 +72,7 @@
             "metadata": 
             {
                 "description": "Name of the Virtual Network."
-            },
-            "defaultValue": "vnet"
+            }
         },
 
         "virtualNetworkAddressPrefix":
@@ -98,7 +96,7 @@
             ],
             "metadata": 
             {
-                "description": "Indicates whether the Virtual Network is new or existing"
+                "description": "Indicates whether the Virtual Network is new or existing."
             }
         },
 
@@ -107,7 +105,50 @@
             "type": "string",
             "metadata":
             {
-                "description": "Resource Group of the exising virtual network."
+                "description": "Resource Group of the existing virtual network."
+            },
+            "defaultValue": ""
+        },
+
+        "publicIPName":
+        {
+            "type": "string",
+            "metadata":
+            {
+                "description": "Name of the Public IP"
+            }
+        },
+
+        "slaveDnsName":
+        {
+            "type": "string",
+            "metadata":
+            {
+                "description": "DNS name for the slave that has a public IP."
+            }
+        },
+
+        "publicIPNewOrExisting":
+        {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues":
+            [
+                "new",
+                "existing"
+            ],
+            "metadata":
+            {
+                "description": "Indicates whether the Public IP is new or existing."
+            }
+        },
+
+        "existingPublicIPRG":
+        {
+            "type": "string",
+            "metadata":
+            {
+                "description": "Resource Group of the existing Public IP."
             },
             "defaultValue": ""
         },
@@ -149,24 +190,56 @@
             }
         },
 
-        "repositoryVMSize":
+        "repositoryVmSize":
         {
             "type": "string",
             "defaultValue": "Standard_A1",
             "metadata":
             {
                 "description": "Size of the repository."
-            }
+            },
+            "allowedValues":
+            [
+                "Standard_A1",
+                "Standard_A2",
+                "Standard_A3",
+                "Standard_A4",
+                "Standard_A11",
+                "Standard_D1",
+                "Standard_D2",
+                "Standard_D3",
+                "Standard_D4",
+                "Standard_D11",
+                "Standard_D12",
+                "Standard_D13",
+                "Standard_D14"
+            ]
         },
 
-        "slaveVMSize":
+        "slaveVmSize":
         {
             "type": "string",
             "defaultValue": "Standard_A1",
             "metadata":
             {
                 "description": "Size of the slave."
-            }
+            },
+            "allowedValues":
+            [
+                "Standard_A1",
+                "Standard_A2",
+                "Standard_A3",
+                "Standard_A4",
+                "Standard_A11",
+                "Standard_D1",
+                "Standard_D2",
+                "Standard_D3",
+                "Standard_D4",
+                "Standard_D11",
+                "Standard_D12",
+                "Standard_D13",
+                "Standard_D14"
+            ]
         },
 
         "numberOfSlaves":
@@ -176,20 +249,30 @@
             {
                 "description": "The number of slave vms to start."
             }
+        },
+        
+        "artifactsBaseUrl" : 
+        {
+            "type" : "string",
+            "metadata" : {
+                "artifactsBaseUrl" : "Base URL of the DataStax Template gallery package"
+            },
+            "defaultValue" : ""
         }
     },
 
     "variables": 
     {
         "apiVersion": "2015-05-01-preview",
+        "templateBaseUrl": "[concat(parameters('artifactsBaseUrl'),'/')]",
         "repositoryName": "[concat( parameters('clusterName'), '-repository')]",
         "slaveName": "[concat( parameters('clusterName'), '-slave')]",
-        "publicIpName": "[concat( parameters('clusterName'), '-publicIp')]",
         "networkSecurityGroupName": "[concat( parameters('clusterName'), '-nsg')]",
         "networkInterfaceName": "[concat( parameters('clusterName'), '-nif')]",
         "fullDnsName": "[concat( parameters('clusterName'), '-public-dns')]",
         "storageAccountSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/storageAccount-',parameters('storageAccountNewOrExisting'),'.json')]",
-        "virtualNetworkSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/virtualNetwork-',parameters('virtualNetworkNewOrExisting'),'.json')]"
+        "virtualNetworkSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/virtualNetwork-',parameters('virtualNetworkNewOrExisting'),'.json')]",
+        "publicIPSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/publicIP-',parameters('virtualNetworkNewOrExisting'),'.json')]"
     },
 
     "resources": 
@@ -218,7 +301,7 @@
                     },
                     "storageAccountName" : 
                     {
-                        "value": "[parameters('storageAccountName')]"
+                        "value": "[parameters('storageAccount')]"
                     },
                     "storageAccountExistingRG": 
                     {
@@ -229,36 +312,35 @@
         },
 
         {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('publicIpName')]",
-            "location": "[parameters('location')]",
-            "properties": 
+            "name": "publicIPSetup",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion" : "2015-01-01",
+            "properties" : 
             {
-                "publicIPAllocationMethod": "Dynamic",
-                "dnsSettings": 
+                "mode": "Incremental",
+                "templateLink" : 
                 {
-                    "domainNameLabel": "[variables('fullDnsName')]"
-                }
-            }
-        },
-
-        {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[concat( variables('publicIpName'), copyindex())]",
-            "location": "[parameters('location')]",
-            "copy":
-            {
-                "name": "ipLoop",
-                "count": "[parameters('numberOfSlaves')]"
-            },
-            "properties": 
-            {
-                "publicIPAllocationMethod": "Dynamic",
-                "dnsSettings": 
+                    "uri" : "[variables('publicIPSetupURL')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters" : 
                 {
-                    "domainNameLabel": "[concat(variables('fullDnsName'), copyindex())]"
+                    "location": 
+                    {
+                        "value": "[parameters('location')]"
+                    },
+                    "publicIPName" : 
+                    {
+                        "value": "[parameters('publicIPName')]"
+                    },
+                    "dnsName":
+                    {
+                        "value": "[parameters('slaveDnsName')]"
+                    },
+                    "existingPublicIPRG": 
+                    {
+                        "value": "[parameters('existingPublicIPRG')]"
+                    }
                 }
             }
         },
@@ -355,8 +437,7 @@
             "dependsOn": 
             [
                 "virtualNetworkSetup",
-                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]",
-                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
             ],
             "properties": 
             {
@@ -370,10 +451,6 @@
                             "subnet": 
                             {
                                 "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), '/subnets/', parameters('subnetName') )]"
-                            },
-                            "publicIPAddress":
-                            {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
                             }
                         }
                     }
@@ -389,18 +466,13 @@
         {
             "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Network/networkInterfaces",
-            "name": "[concat( variables('networkInterfaceName'), copyindex())]",
+            "name": "[concat( variables('networkInterfaceName'), '0')]",
             "location": "[parameters('location')]",
-            "copy":
-            {
-                "name": "nifLoop",
-                "count": "[parameters('numberOfSlaves')]"
-            },
             "dependsOn": 
             [
                 "virtualNetworkSetup",
                 "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]",
-                "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIpName'), copyindex()))]"
+                "[resourceId('Microsoft.Resources/deployments', 'publicIPSetup' )]"
             ],
             "properties": 
             {
@@ -417,7 +489,46 @@
                             },
                             "publicIPAddress":
                             {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIpName'), copyindex()))]"
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName') )]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup":
+                {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+                }
+            }
+        },
+
+
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat( variables('networkInterfaceName'), add(copyindex(), 1))]",
+            "location": "[parameters('location')]",
+            "copy":
+            {
+                "name": "nifLoop",
+                "count": "[sub(parameters('numberOfSlaves'), 1)]"
+            },
+            "dependsOn": 
+            [
+                "virtualNetworkSetup",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+            ],
+            "properties": 
+            {
+                "ipConfigurations": 
+                [
+                    {
+                        "name": "ipconfig",
+                        "properties": 
+                        {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": 
+                            {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), '/subnets/', parameters('subnetName') )]"
                             }
                         }
                     }
@@ -449,7 +560,7 @@
             {
                 "hardwareProfile": 
                 {
-                    "vmSize": "[parameters('repositoryVMSize')]"
+                    "vmSize": "[parameters('repositoryVmSize')]"
                 },
                 "osProfile": 
                 {
@@ -464,14 +575,14 @@
                         "publisher": "thinkboxsoftware",
                         "offer": "deadline7-2",
                         "sku": "deadline-repository-7-2",
-                        "version": "1.0.0"
+                        "version": "latest"
                     },
                     "osDisk": 
                     {
                         "name": "osdisk",
                         "vhd": 
                         {
-                            "uri": "[concat('http://',parameters('storageAccountName'),'.blob.core.windows.net/vhds/', variables('repositoryName'),'osdisk.vhd')]"
+                            "uri": "[concat('http://',parameters('storageAccount'),'.blob.core.windows.net/vhds/', variables('repositoryName'),'osdisk.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -540,7 +651,7 @@
             {
                 "hardwareProfile": 
                 {
-                    "vmSize": "[parameters('slaveVMSize')]"
+                    "vmSize": "[parameters('slaveVmSize')]"
                 },
                 "osProfile": 
                 {
@@ -556,14 +667,14 @@
                         "publisher": "thinkboxsoftware",
                         "offer": "deadline7-2",
                         "sku": "deadline-slave-7-2",
-                        "version": "1.0.0"
+                        "version": "latest"
                     },
                     "osDisk": 
                     {
                         "name": "osdisk",
                         "vhd": 
                         {
-                            "uri": "[concat('http://',parameters('storageAccountName'),'.blob.core.windows.net/vhds/', variables('slaveName') , copyindex(), '-osdisk.vhd')]"
+                            "uri": "[concat('http://',parameters('storageAccount'),'.blob.core.windows.net/vhds/', variables('slaveName') , copyindex(), '-osdisk.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
