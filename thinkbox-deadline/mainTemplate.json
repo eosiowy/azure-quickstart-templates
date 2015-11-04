@@ -212,7 +212,21 @@
                 "Standard_D11",
                 "Standard_D12",
                 "Standard_D13",
-                "Standard_D14"
+                "Standard_D14",
+                "Standard_D1_v2", 
+                "Standard_D2_v2", 
+                "Standard_D3_v2", 
+                "Standard_D4_v2", 
+                "Standard_D5_v2", 
+                "Standard_D11_v2", 
+                "Standard_D12_v2", 
+                "Standard_D13_v2", 
+                "Standard_D14_v2",
+                "Standard_G1", 
+                "Standard_G2", 
+                "Standard_G3", 
+                "Standard_G4", 
+                "Standard_G5"
             ]
         },
 
@@ -238,7 +252,21 @@
                 "Standard_D11",
                 "Standard_D12",
                 "Standard_D13",
-                "Standard_D14"
+                "Standard_D14",
+                "Standard_D1_v2", 
+                "Standard_D2_v2", 
+                "Standard_D3_v2", 
+                "Standard_D4_v2", 
+                "Standard_D5_v2", 
+                "Standard_D11_v2", 
+                "Standard_D12_v2", 
+                "Standard_D13_v2", 
+                "Standard_D14_v2",
+                "Standard_G1", 
+                "Standard_G2", 
+                "Standard_G3", 
+                "Standard_G4", 
+                "Standard_G5"
             ]
         },
 
@@ -248,14 +276,21 @@
             "metadata": 
             {
                 "description": "The number of slave vms to start."
-            }
+            },
+            "allowedValues":
+            [
+                2,
+                4,
+                6,
+                8
+            ]
         },
         
         "artifactsBaseUrl" : 
         {
             "type" : "string",
             "metadata" : {
-                "artifactsBaseUrl" : "Base URL of the DataStax Template gallery package"
+                "artifactsBaseUrl" : "Base URL of the Thinkbox Multi-VM Template gallery package"
             },
             "defaultValue" : ""
         }
@@ -270,9 +305,9 @@
         "networkSecurityGroupName": "[concat( parameters('clusterName'), '-nsg')]",
         "networkInterfaceName": "[concat( parameters('clusterName'), '-nif')]",
         "fullDnsName": "[concat( parameters('clusterName'), '-public-dns')]",
-        "storageAccountSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/storageAccount-',parameters('storageAccountNewOrExisting'),'.json')]",
-        "virtualNetworkSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/virtualNetwork-',parameters('virtualNetworkNewOrExisting'),'.json')]",
-        "publicIPSetupURL" : "[concat('http://deadline.blob.core.windows.net/scripts/publicIP-',parameters('virtualNetworkNewOrExisting'),'.json')]"
+        "storageAccountSetupURL" : "[concat( variables('templateBaseUrl'), 'storageAccount-', parameters('storageAccountNewOrExisting'), '.json')]",
+        "virtualNetworkSetupURL" : "[concat( variables('templateBaseUrl'), 'virtualNetwork-', parameters('virtualNetworkNewOrExisting'), '.json')]",
+        "publicIPSetupURL" : "[concat( variables('templateBaseUrl'), 'publicIP-',parameters('virtualNetworkNewOrExisting'),'.json')]"
     },
 
     "resources": 
@@ -618,7 +653,7 @@
                 {
                     "fileUris": 
                     [ 
-                        "https://deadline.blob.core.windows.net/scripts/repo-autoconf.py"
+                        "[concat( variables('templateBaseUrl'), 'repo-autoconf.py')]"
                     ],
                     "commandToExecute": "[concat('python', ' repo-autoconf.py')]"
                 }
